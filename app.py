@@ -20,7 +20,7 @@ load_dotenv()
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-chat_session = client.chats.create(model="gemini-2.0-flash")
+chat_session = client.chats.create(model="gemini-2.5-flash")
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
@@ -107,3 +107,47 @@ def stream():
 
     return Response(stream_with_context(generate()),
                     mimetype="text/event-stream")
+
+
+@app.route("/generate", methods=["POST"])
+def generate():
+    """
+    Simple JSON API for your Node backend.
+    Expects: { "input": "some prompt here" }
+    Returns: { "text": "full generated email text" }
+    """
+    global chat_session
+
+    data = request.get_json(silent=True) or {}
+    prompt = data.get("input") or data.get("prompt")
+
+    if not prompt:
+        return jsonify(
+            success=False,
+            message="Missing 'input' or 'prompt' in JSON body",
+        ), 400
+
+    try:
+        # Use streaming like your /stream route, but accumulate text and return once.
+        assistant_response_content = ""
+
+        response = chat_session.send_message_stream(prompt)
+
+        for chunk in response:
+            assistant_response_content += chunk.text
+
+        return jsonify(
+            success=True,
+            text=assistant_response_content
+        ), 200
+
+    except Exception as e:
+        print("Error in /generate:", e)
+        return jsonify(
+            success=False,
+            message="Failed to generate text",
+            error=str(e),
+        ), 500
+
+if __name__ == "__main__":
+    app.run(host="127.0.0.1", port=5000, debug=True)
