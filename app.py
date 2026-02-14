@@ -8,7 +8,7 @@ load_dotenv()
 # IMPORTANT: Must match Render environment variable
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-model = genai.GenerativeModel("gemini-pro")
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 app = Flask(__name__)
 
